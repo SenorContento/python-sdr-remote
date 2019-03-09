@@ -36,13 +36,20 @@ except ImportError:
     sys.exit()
 
 # Start SDR
-sdr = RtlSdr()
+try:
+    sdr = RtlSdr()
+except OSError:
+    print("Could Not Find RTLSDR!!! Is It Locked???");
+    sys.exit()
 
 # configure device
 sdr.sample_rate = 2.048e6   # Hz - Sample Rate is the number of samples of audio carried per second. (https://manual.audacityteam.org/man/sample_rates.html)
 sdr.center_freq = 314873000 # Hz - 314,873.000 kHz
 sdr.freq_correction = 60    # PPM
-sdr.gain = 'auto'
+# Figure Out How To Squelch (-40.0)
+#sdr.gain = 'auto'
+
+squelch = -40.0
 
 def printMe(sdr):
     samples = sdr.read_samples(512)
@@ -63,7 +70,10 @@ def plotMe(sdr):
 
 async def streaming(sdr):
     async for samples in sdr.stream():
-        print(samples)
+        for sample in samples:
+            if(sample.real == 1):
+                if((sample.imag*100) > 90): # Squelchish Value? It it out of 100...
+                    print(sample.imag*100)
 
     # to stop streaming:
     await sdr.stop()
