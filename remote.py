@@ -6,6 +6,7 @@ try:
     import sys
 except ImportError:
     print("ImportError! Cannot import sys!")
+    exit(1) # Obviously I cannot use sys.exit() if I cannot import sys...
 
 try:
     assert sys.version_info >= (3, 0)
