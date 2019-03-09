@@ -76,8 +76,11 @@ freq = 315e6 # Hz - 315,000.000 kHz
 squelch_fake = 60 # Potentional Squelch Level is -40.0
 squelch = -5.0 # This is different than the Gqrx squelch level of -40
 offset = measured - freq
+
+print();
 print("Wanted Frequency: " + (str) (trunc(freq)) + " Hz! Actual Frequency: " + (str) (trunc(measured)) + " Hz!");
-print("Offset: {:0.0f}".format(offset)); # Trunc does not want to cooperate with offset for some reason...
+print("Offset: {0:0.0f} and Squelch: {1}".format(offset, squelch)); # Trunc does not want to cooperate with offset for some reason...
+print();
 
 #sys.exit()
 
@@ -104,32 +107,27 @@ def plotMe(sdr):
     show()
 
 async def streaming(sdr):
-    try:
-        async for samples in sdr.stream():
-            db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
-            #print("Decibel: " + str(db) + " Squelch: " + str(squelch))
-            if(db > squelch):
-                print("Signal!!! Decibel: " + str(db))
+    async for samples in sdr.stream():
+        db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
+        #print("Decibel: " + str(db) + " Squelch: " + str(squelch))
+        if(db > squelch):
+            print("Signal!!! Decibel: " + str(db))
 
-            # The three single quotes act as a multiline comment.
-            # Just comparing the decibel is so much easier than the below code
-            # and I don't have the problem of inteference from picking up the antenna
-            '''
-            for sample in samples:
-                #print("Real: " + str(sample.real*100))
+        # Just comparing the decibel is so much easier than the below code
+        # and I don't have the problem of inteference from picking up the antenna
 
-                # This works, but it also can produce inteference that I cannot silence if I pick up
-                # the antenna with my hand. I can disable the inteference in Gqrx by using Squelch
-                if(sample.real == 1 && False):
-                    # https://www.reddit.com/r/RTLSDR/comments/5e4gj0/how_can_i_monitor_a_single_fm_frequency_on/ - db = (10*log10(var(samples)))
-                    # https://www.khanacademy.org/math/ap-statistics/random-variables-ap/discrete-random-variables/v/variance-and-standard-deviation-of-a-discrete-random-variable - To Learn About Variance
-                    #db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
-                    #print("Decibel: " + str(db))
-                    if((sample.imag*100) > squelch_fake):# and db > -10): # Squelchish Value? It it out of 100...
-                        print("Imaginary: " + str(sample.imag*100))
-            '''
-    except KeyboardInterrupt:
-        print("Stopped Listening for the Remote Signal!")
+        #for sample in samples:
+            #print("Real: " + str(sample.real*100))
+
+            # This works, but it also can produce inteference that I cannot silence if I pick up
+            # the antenna with my hand. I can disable the inteference in Gqrx by using Squelch
+        #    if(sample.real == 1 && False):
+                # https://www.reddit.com/r/RTLSDR/comments/5e4gj0/how_can_i_monitor_a_single_fm_frequency_on/ - db = (10*log10(var(samples)))
+                # https://www.khanacademy.org/math/ap-statistics/random-variables-ap/discrete-random-variables/v/variance-and-standard-deviation-of-a-discrete-random-variable - To Learn About Variance
+                #db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
+                #print("Decibel: " + str(db))
+        #        if((sample.imag*100) > squelch_fake):# and db > -10): # Squelchish Value? It it out of 100...
+        #            print("Imaginary: " + str(sample.imag*100))
 
     # to stop streaming:
     await sdr.stop()
@@ -154,7 +152,9 @@ try:
     #printMe(sdr);
     #plotMe(sdr); # Great for Debugging
 except SystemExit as error:
-    print("Shutting Down! Reason: \"" + str(error) + "\"") #repr(error)
+    #print("Shutting Down! Reason: \"" + str(error) + "\"") #repr(error)
+    print()
+    print("Stopped Listening for the Remote Signal!");
     os._exit(2); # I want a cleaner way of exiting than this.
     #sys.exit(2);
     # Current Problems
