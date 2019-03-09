@@ -11,19 +11,25 @@ try:
     assert sys.version_info >= (3, 0)
 except AssertionError:
     print("AssertionError! You need to use Python 3.x+!")
-    sys.exit()
+    sys.exit(1)
+
+try:
+    import os
+except ImportError:
+    print("ImportError! Cannot import os!")
+    sys.exit(1)
 
 try:
     from math import trunc
 except ImportError:
     print("ImportError! Cannot import trunc from math!")
-    sys.exit()
+    sys.exit(1)
 
 try:
     import asyncio
 except ImportError:
     print("ImportError! Cannot import asyncio!")
-    sys.exit()
+    sys.exit(1)
 
 try:
     from rtlsdr import RtlSdr
@@ -32,7 +38,7 @@ except ImportError:
     print("Did you install librtlsdr?")
     # pip3 install pyrtlsdr
     # brew install librtlsdr
-    sys.exit()
+    sys.exit(1)
 
 try:
     from pylab import *
@@ -43,10 +49,25 @@ except ImportError:
 
 # Start SDR
 try:
-    sdr = RtlSdr()
+    device = 0;
+
+    # Get a list of detected device serial numbers (str)
+    devices = RtlSdr.get_device_serial_addresses()
+    print("Devices: " + str(devices));
+    if len(devices) is 0: raise Exception("No Detected RTLSDR Devices!!!");
+    # Find the device index for a given serial number
+    device_index = RtlSdr.get_device_index_by_serial(devices[device]) # You can insert your Serial Address (as a string) directly here
+    sdr = RtlSdr(device_index)
+    #sdr = RtlSdr() # If you don't have more than 1 device, this will work fine.
 except OSError:
     print("Could Not Find RTLSDR!!! Is It Locked???");
-    sys.exit()
+    sys.exit(2)
+except IndexError:
+    print("Choose a Valid Device ID!!!");
+    sys.exit(2)
+except Exception as error:
+    print("I Cannot Find A RTLSDR!!!");
+    sys.exit(2)
 
 # configure device
 measured = 314873e3 # Hz - 314,873.000 kHz
@@ -81,15 +102,18 @@ def plotMe(sdr):
     show()
 
 async def streaming(sdr):
-    async for samples in sdr.stream():
-        for sample in samples:
-            #print("Real: " + str(sample.real*100))
-            
-            # This works, but it also can produce inteference that I cannot silence if I pick up
-            # the antenna with my hand. I can disable the inteference in Gqrx by using Squelch
-            if(sample.real == 1):
-                if((sample.imag*100) > squelch): # Squelchish Value? It it out of 100...
-                    print("Imaginary: " + str(sample.imag*100))
+    try:
+        async for samples in sdr.stream():
+            for sample in samples:
+                #print("Real: " + str(sample.real*100))
+
+                # This works, but it also can produce inteference that I cannot silence if I pick up
+                # the antenna with my hand. I can disable the inteference in Gqrx by using Squelch
+                if(sample.real == 1):
+                    if((sample.imag*100) > squelch): # Squelchish Value? It it out of 100...
+                        print("Imaginary: " + str(sample.imag*100))
+    except KeyboardInterrupt:
+        print("Stopped Listening for the Remote Signal!")
 
     # to stop streaming:
     await sdr.stop()
@@ -98,9 +122,24 @@ async def streaming(sdr):
     sdr.close()
 
 def listen(sdr):
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(streaming(sdr))
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(streaming(sdr))
+    except KeyboardInterrupt:
+        # This should only be called if something happened to the
+        # RTLSDR's Signal, like the RTLSDR was unplugged during runtime.
 
-listen(sdr);
-#printMe(sdr);
-#plotMe(sdr); # Great for Debugging
+        #print("Received Exit!")
+        #return
+        raise SystemExit("Signal Stopped and KeyboardInterrupt Occurred!!!");
+
+try:
+    listen(sdr);
+    #printMe(sdr);
+    #plotMe(sdr); # Great for Debugging
+except SystemExit as error:
+    print("Shutting Down! Reason: \"" + str(error) + "\"") #repr(error)
+    os._exit(2); # I want a cleaner way of exiting than this.
+    #sys.exit(2);
+    # Current Problems
+    # Error in atexit._run_exitfuncs: (Related to "python3.7/concurrent/futures/thread.py", line 40, in _python_exit)
