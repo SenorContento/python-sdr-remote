@@ -47,7 +47,7 @@ try:
 except ImportError:
     print("ImportError! Cannot import pylab!")
     # pip3 install matplotlib
-    sys.exit()
+    sys.exit(1)
 
 # Start SDR
 try:
@@ -78,7 +78,7 @@ squelch_fake = 60 # Potentional Squelch Level is -40.0
 squelch = -10.0 # This is different than the Gqrx squelch level of -40
 offset = measured - freq
 
-maxEmptyBinary = 5 # For deciding when to reset the signal tracker
+maxEmptyBinary = 10 # For deciding when to reset the signal tracker
 
 print();
 print("Wanted Frequency: " + (str) (trunc(freq)) + " Hz! Actual Frequency: " + (str) (trunc(measured)) + " Hz!");
@@ -112,6 +112,19 @@ def plotMe(sdr):
 def analogToBinary(array):
     return array.append(12)
 
+def detectButton(signal):
+    # This doesn't work the way I want yet.
+    # I have to figure out how to make this work.
+    count = 0;
+    for element in signal:
+        #print("Element: " + str(element));
+        if element == 1:
+            count = count + 1;
+
+        if(count >= 6):
+            os.system('say "Hello"')
+            break;
+
 async def streaming(sdr):
     global signal
     signal = [];
@@ -124,11 +137,13 @@ async def streaming(sdr):
             signal.append(1);
             print("Signal!!! Decibel: " + str(db))
             print("Signal: " + str(signal));
+
+            detectButton(signal);
         else:
             signal.append(0);
 
             count = 0;
-            for element in signal[-5:]:
+            for element in signal[-maxEmptyBinary:]:
                 if element == 0:
                     count = count + 1;
                 if count >= maxEmptyBinary:
