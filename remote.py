@@ -71,13 +71,13 @@ class SDRKeyFob(object):
     #    print("Hello, %s!" % message)
     #    return "Hello, %s!" % message
 
-    def printMe(client, sdr):
+    def printMe(self, sdr):
         samples = sdr.read_samples(512)
         sdr.close()
 
         print(samples)
 
-    def plotMe(client, sdr):
+    def plotMe(self, sdr):
         samples = sdr.read_samples(256*1024)
         sdr.close()
 
@@ -88,10 +88,11 @@ class SDRKeyFob(object):
 
         show()
 
-    def analogToBinary(array):
+    # This function isn't used
+    def analogToBinary(self, array):
         return array.append(12)
 
-    def detectButton(client, signal):
+    def detectButton(self, signal):
         # This doesn't work the way I want yet.
         # I have to figure out how to make this work.
         count = 0;
@@ -104,7 +105,7 @@ class SDRKeyFob(object):
                 os.system('say "Hello"')
                 break;
 
-    async def streaming(client, sdr):
+    async def streaming(self, sdr):
         global signal
         signal = [];
         async for samples in sdr.stream():
@@ -136,7 +137,7 @@ class SDRKeyFob(object):
         await sdr.stop() # to stop streaming
         sdr.close() # done
 
-    def listen(client, sdr):
+    def listen(self, sdr):
         try:
             loop = asyncio.get_event_loop()
             loop.run_until_complete(client.streaming(sdr))
