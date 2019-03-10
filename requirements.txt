@@ -1,0 +1,3 @@
+pyrtlsdr==0.2.91
+matplotlib==3.0.3
+brewtils==2.4.5
