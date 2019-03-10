@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # https://pypi.org/project/pyrtlsdr/
+# https://electronics.stackexchange.com/questions/115192/how-electrical-signals-converted-into-digital-binary-1-0
 
 try:
     import sys
@@ -74,8 +75,10 @@ except Exception as error:
 measured = 314873e3 # Hz - 314,873.000 kHz
 freq = 315e6 # Hz - 315,000.000 kHz
 squelch_fake = 60 # Potentional Squelch Level is -40.0
-squelch = -5.0 # This is different than the Gqrx squelch level of -40
+squelch = -10.0 # This is different than the Gqrx squelch level of -40
 offset = measured - freq
+
+maxEmptyBinary = 5 # For deciding when to reset the signal tracker
 
 print();
 print("Wanted Frequency: " + (str) (trunc(freq)) + " Hz! Actual Frequency: " + (str) (trunc(measured)) + " Hz!");
@@ -106,56 +109,50 @@ def plotMe(sdr):
 
     show()
 
+def analogToBinary(array):
+    return array.append(12)
+
 async def streaming(sdr):
+    global signal
+    signal = [];
     async for samples in sdr.stream():
+        # https://www.reddit.com/r/RTLSDR/comments/5e4gj0/how_can_i_monitor_a_single_fm_frequency_on/ - db = (10*log10(var(samples)))
+        # https://www.khanacademy.org/math/ap-statistics/random-variables-ap/discrete-random-variables/v/variance-and-standard-deviation-of-a-discrete-random-variable - To Learn About Variance
         db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
         #print("Decibel: " + str(db) + " Squelch: " + str(squelch))
         if(db > squelch):
+            signal.append(1);
             print("Signal!!! Decibel: " + str(db))
+            print("Signal: " + str(signal));
+        else:
+            signal.append(0);
 
-        # Just comparing the decibel is so much easier than the below code
-        # and I don't have the problem of inteference from picking up the antenna
+            count = 0;
+            for element in signal[-5:]:
+                if element == 0:
+                    count = count + 1;
+                if count >= maxEmptyBinary:
+                    signal = [];
 
-        #for sample in samples:
-            #print("Real: " + str(sample.real*100))
+            #for sample in samples:
+            #    print("Real: " + str(sample.real*100)) # Check if equals 1
+            #    print("Imaginary: " + str(sample.imag*100))
 
-            # This works, but it also can produce inteference that I cannot silence if I pick up
-            # the antenna with my hand. I can disable the inteference in Gqrx by using Squelch
-        #    if(sample.real == 1 && False):
-                # https://www.reddit.com/r/RTLSDR/comments/5e4gj0/how_can_i_monitor_a_single_fm_frequency_on/ - db = (10*log10(var(samples)))
-                # https://www.khanacademy.org/math/ap-statistics/random-variables-ap/discrete-random-variables/v/variance-and-standard-deviation-of-a-discrete-random-variable - To Learn About Variance
-                #db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
-                #print("Decibel: " + str(db))
-        #        if((sample.imag*100) > squelch_fake):# and db > -10): # Squelchish Value? It it out of 100...
-        #            print("Imaginary: " + str(sample.imag*100))
-
-    # to stop streaming:
-    await sdr.stop()
-
-    # done
-    sdr.close()
+    # I am not sure this code ever runs...
+    await sdr.stop() # to stop streaming
+    sdr.close() # done
 
 def listen(sdr):
     try:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(streaming(sdr))
     except KeyboardInterrupt:
-        # This should only be called if something happened to the
-        # RTLSDR's Signal, like the RTLSDR was unplugged during runtime.
-
-        #print("Received Exit!")
-        #return
-        raise SystemExit("Signal Stopped and KeyboardInterrupt Occurred!!!");
+        raise SystemExit("Stopped Listening for the Remote Signal!");
 
 try:
     listen(sdr);
     #printMe(sdr);
     #plotMe(sdr); # Great for Debugging
 except SystemExit as error:
-    #print("Shutting Down! Reason: \"" + str(error) + "\"") #repr(error)
-    print()
-    print("Stopped Listening for the Remote Signal!");
-    os._exit(2); # I want a cleaner way of exiting than this.
-    #sys.exit(2);
-    # Current Problems
-    # Error in atexit._run_exitfuncs: (Related to "python3.7/concurrent/futures/thread.py", line 40, in _python_exit)
+    print('\n' + str(error)); #repr(error)
+    os._exit(2); # I want a cleaner way of exiting than this. - Error in atexit._run_exitfuncs: (Related to "python3.7/concurrent/futures/thread.py", line 40, in _python_exit)
