@@ -124,7 +124,7 @@ class SDRKeyFob(object):
                     print("Signal!!! Decibel: " + str(db))
                     print("Signal: " + str(signal));
 
-                    #client.detectButton(signal);
+                    client.detectButton(signal);
                 else:
                     signal.append(0);
 
