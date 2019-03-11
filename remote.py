@@ -97,39 +97,45 @@ class SDRKeyFob(object):
     def detectButton(self, signal):
         # This doesn't work the way I want yet.
         # I have to figure out how to make this work.
-        count = 0;
-        for element in signal:
-            #print("Element: " + str(element));
-            if element == 1:
-                count = count + 1;
+        try:
+            count = 0;
+            for element in signal:
+                #print("Element: " + str(element));
+                if element == 1:
+                    count = count + 1;
 
-            if(count >= 6):
-                os.system('say "Hello"')
-                break;
+                if(count >= 6):
+                    os.system('say "Hello"')
+                    break;
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt("Interrupted detectButton()!");
 
     async def streaming(self, sdr):
-        global signal
-        signal = [];
-        async for samples in sdr.stream():
-            # https://www.reddit.com/r/RTLSDR/comments/5e4gj0/how_can_i_monitor_a_single_fm_frequency_on/ - db = (10*log10(var(samples)))
-            # https://www.khanacademy.org/math/ap-statistics/random-variables-ap/discrete-random-variables/v/variance-and-standard-deviation-of-a-discrete-random-variable - To Learn About Variance
-            db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
-            #print("Decibel: " + str(db) + " Squelch: " + str(squelch))
-            if(db > squelch):
-                signal.append(1);
-                print("Signal!!! Decibel: " + str(db))
-                print("Signal: " + str(signal));
+        try:
+            global signal
+            signal = [];
+            async for samples in sdr.stream():
+                # https://www.reddit.com/r/RTLSDR/comments/5e4gj0/how_can_i_monitor_a_single_fm_frequency_on/ - db = (10*log10(var(samples)))
+                # https://www.khanacademy.org/math/ap-statistics/random-variables-ap/discrete-random-variables/v/variance-and-standard-deviation-of-a-discrete-random-variable - To Learn About Variance
+                db = (10*log10(var(samples))) # https://docs.scipy.org/doc/numpy/reference/generated/numpy.var.html - np.var(samples) also works. "np.var() -> Compute the variance along the specified axis."
+                #print("Decibel: " + str(db) + " Squelch: " + str(squelch))
+                if(db > squelch):
+                    signal.append(1);
+                    print("Signal!!! Decibel: " + str(db))
+                    print("Signal: " + str(signal));
 
-                client.detectButton(signal);
-            else:
-                signal.append(0);
+                    #client.detectButton(signal);
+                else:
+                    signal.append(0);
 
-                count = 0;
-                for element in signal[-maxEmptyBinary:]:
-                    if element == 0:
-                        count = count + 1;
-                    if count >= maxEmptyBinary:
-                        signal = [];
+                    count = 0;
+                    for element in signal[-maxEmptyBinary:]:
+                        if element == 0:
+                            count = count + 1;
+                        if count >= maxEmptyBinary:
+                            signal = [];
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt("Interrupted streaming() loop!");
 
                 #for sample in samples:
                 #    print("Real: " + str(sample.real*100)) # Check if equals 1
