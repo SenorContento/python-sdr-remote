@@ -124,6 +124,8 @@ class SDRKeyFob(object):
                     print("Signal!!! Decibel: " + str(db))
                     print("Signal: " + str(signal));
 
+                    # This whole function is broken.
+                    # It infinite-loops and keeps detecting the same signal repeatedly
                     client.detectButton(signal);
                 else:
                     signal.append(0);
