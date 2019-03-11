@@ -43,7 +43,8 @@ except ImportError:
     print("ImportError! Cannot import RtlSdr from rtlsdr!")
     print("Did you install librtlsdr?")
     # pip3 install pyrtlsdr
-    # brew install librtlsdr
+    # On MacOSX: brew install librtlsdr
+    # On RPi 3: sudo apt-get install librtlsdr0
     sys.exit(1)
 
 try:
@@ -51,14 +52,15 @@ try:
 except ImportError:
     print("ImportError! Cannot import pylab!")
     # pip3 install matplotlib
-    sys.exit(1)
+    # sys.exit(1) # I disabled this because matplotlib is 36.6MB and not everyone uses a GUI.
 
 try:
     import brewtils
 except ImportError:
-    print("ImportError! Cannot import brewtils!")
+    None
+    # print("ImportError! Cannot import brewtils!")
     # pip3 install brewtils
-    sys.exit(1)
+    # sys.exit(1) # I disabled this because I don't even use brewtils. I am still debating on if I should.
 
 #from brewtils.decorators import system, parameter, command
 #from brewtils.plugin import RemotePlugin
